@@ -25,8 +25,10 @@ fn main() {
                                        .build()
                                        .unwrap();
 
-    grid.close_cell(63, [0.5, 0.5, 0.5, 1.0]);
-    grid.close_cell(40, [0.5, 0.5, 0.5, 1.0]);
+    grid.active_cell(4, [0.5, 0.5, 0.5, 1.0]);
+    grid.active_cell(14, [0.5, 0.5, 0.5, 1.0]);
+    grid.active_cell(24, [0.5, 0.5, 0.5, 1.0]);
+    grid.active_cell(34, [0.5, 0.5, 0.5, 1.0]);
 
     for e in window {
         let grid_corner: f64 = 20.0;
@@ -53,5 +55,6 @@ fn main() {
                 i += 1;
             }
         });
+        grid.ping();
     }
 }
