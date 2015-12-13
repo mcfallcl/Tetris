@@ -2,7 +2,12 @@
 extern crate log;
 extern crate piston_window;
 
+use std::slice::{Iter, IterMut};
+
 use self::piston_window::types::Color;
+
+pub const OPEN_COLOR: Color = [0.9, 0.9, 0.9, 1.0];
+pub const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
 
 pub mod logger;
 
@@ -17,6 +22,37 @@ pub enum Piece {
     Square,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Cell {
+    color: Color,
+    status: CellStatus,
+}
+
+impl Cell {
+    pub fn new() -> Cell {
+        Cell {
+            color: OPEN_COLOR,
+            status: CellStatus::Open,
+        }
+    }
+
+    pub fn get_status(&self) -> CellStatus {
+        self.status
+    }
+
+    pub fn set_status(&mut self, new_status: CellStatus) {
+        self.status = new_status;
+    }
+
+    pub fn get_color(&self) -> Color {
+        self.color
+    }
+
+    pub fn set_color(&mut self, color: Color) {
+        self.color = color;
+    }
+}
+
 impl Piece {
     pub fn new(piece_num: u8) -> Piece {
         match piece_num {
@@ -27,119 +63,160 @@ impl Piece {
             4 => Piece::RightZig,
             5 => Piece::LeftZig,
             6 => Piece::Square,
-            _ => panic!("Invalid piece num")
+            _ => panic!("Invalid piece num"),
         }
     }
 }
 
 pub struct Grid {
-    cells: Vec<CellStatus>,
+    cells: Vec<Cell>,
+    active_cells: [usize; 4],
+    active_color: Color,
 }
 
 impl Grid {
     pub fn init() -> Grid {
         info!("Initializing grid...");
-        let cells = vec![CellStatus::Open; 240];
-        let grid = Grid { cells: cells };
+        let cells = vec![Cell::new(); 240];
+        let grid = Grid { cells: cells, active_cells: [240; 4], active_color: BLACK };
         info!("Grid successfully initialized.");
         grid
     }
 
-    pub fn close_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
-        self.change_cell_status(cell_num, CellStatus::Closed(color))
+    pub fn new_piece(&mut self, piece: Piece, color: Color) {
+        match piece {
+            Piece::Straight => self.active_cells = [5, 15, 25, 35],
+            Piece::LShape => self.active_cells = [14, 24, 34, 35],
+            Piece::BackwardLShape => self.active_cells = [15, 25, 34, 35],
+            Piece::TShape => self.active_cells = [23, 24, 25, 34],
+            Piece::RightZig => self.active_cells = [24, 25, 35, 36],
+            Piece::LeftZig => self.active_cells = [25, 26, 34, 35],
+            Piece::Square => self.active_cells = [24, 25, 34, 35],
+        }
+        for i in 0..4 {
+            self.activate_cell(i).unwrap();
+        }
+        self.active_color = color;
+    }
+
+    pub fn close_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
+        let color = self.active_color;
+        self.change_cell_status(cell_num, CellStatus::Closed, color)
     }
 
     pub fn open_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
-        self.change_cell_status(cell_num, CellStatus::Open)
+        self.change_cell_status(cell_num, CellStatus::Open, OPEN_COLOR)
     }
 
-    pub fn active_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
-        self.change_cell_status(cell_num, CellStatus::ActivePiece(color))
+    pub fn activate_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
+        let color = self.active_color;
+        self.change_cell_status(cell_num, CellStatus::ActivePiece, color)
     }
 
-    pub fn get_cells(&self) -> &Vec<CellStatus> {
-        &self.cells
+    pub fn iter(&self) -> Iter<Cell> {
+        self.cells.iter()
     }
 
-    pub fn ping(&mut self) {
-        let mut active_cell_indecies: [usize; 4] = [240; 4];
-        println!("{:?}", active_cell_indecies);
-        let mut i: usize = 0;
-        let mut index: usize = 0;
-        for cell in self.cells.iter() {
-            match *cell {
-                CellStatus::ActivePiece(_) => {
-                    active_cell_indecies[index] = i;
-                    index += 1;
-                    println!("{:?}", active_cell_indecies);
-                },
-                _ => {},
-            };
-            i += 1;
-        }
-        if self.check_down(active_cell_indecies) {
-            let mut active_cells = [CellStatus::Open; 4];
+    pub fn iter_mut(&mut self) -> IterMut<Cell> {
+        self.cells.iter_mut()
+    }
+
+    pub fn cycle(&mut self) {
+        let mut cell_num: usize;
+        if self.check_active_down() {
             for i in 0..4 {
-                active_cells[i] = self.cells[active_cell_indecies[i]];
+                cell_num = self.active_cells[i];
+                self.open_cell(cell_num);
+                self.active_cells[i] += 10;
             }
             for i in 0..4 {
-                self.open_cell(active_cell_indecies[i]);
-            }
-            for i in 0..4 {
-                self.active_cell(active_cell_indecies[i] + 10, active_cells[i].get_color()).unwrap();
+                cell_num = self.active_cells[i];
+                self.activate_cell(cell_num);
             }
         } else {
             for i in 0..4 {
-                index = active_cell_indecies[i];
-                println!("{}", index);
-                let color = self.cells.get(index).unwrap().get_color();
-                self.close_cell(index, color);
+                cell_num = self.active_cells[i];
+                self.close_cell(cell_num);
             }
+            self.new_piece(Piece::Square, BLACK);
         }
-        println!("{:?}", active_cell_indecies);
     }
 
-    fn check_down(&self, piece: [usize; 4]) -> bool {
-        let mut result = true;
+    pub fn move_active_down(&mut self) {
+        self.cycle();
+    }
+
+    pub fn move_active_right(&mut self) {
+        if !self.check_active_right() { return; }
+        let mut cell_num: usize;
         for i in 0..4 {
-            if piece[i] >= 230 {
-                result = false;
-            }
-            match self.cells.get(i + 10) {
-                None => {},
-                Some(c) => match *c {
-                    CellStatus::Closed(_) => result = false,
-                    _ => {},
-                }
+            cell_num = self.active_cells[i];
+            self.open_cell(cell_num);
+            self.active_cells[i] += 1;
+        }
+        for i in 0..4 {
+            cell_num = self.active_cells[i];
+            self.activate_cell(cell_num);
+        }
+    }
+
+    pub fn move_active_left(&mut self) {
+        if !self.check_active_left() { return; }
+        let mut cell_num: usize;
+        for i in 0..4 {
+            cell_num = self.active_cells[i];
+            self.open_cell(cell_num);
+            self.active_cells[i] -= 1;
+        }
+        for i in 0..4 {
+            cell_num = self.active_cells[i];
+            self.activate_cell(cell_num);
+        }
+    }
+
+    // returns true if the piece can move down
+    fn check_active_down(&self) -> bool {
+        for i in 0..4 {
+            let cell_num = self.active_cells[i];
+            let cell = self.cells.get(cell_num).unwrap();
+            if cell_num + 10 >= 240 || self.cells.get(cell_num+10).unwrap().get_status() == CellStatus::Closed {
+                return false;
             }
         }
-        println!("{}", result);
-        result
+        true
+    }
+
+    fn check_active_right(&self) -> bool {
+        for i in 0..4 {
+            let cell_num = self.active_cells[i];
+            if (cell_num + 1) % 10 == 0 || self.cells.get(cell_num+1).unwrap().get_status() == CellStatus::Closed {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn check_active_left(&self) -> bool {
+        for i in 0..4 {
+            let cell_num = self.active_cells[i];
+            if (cell_num - 1) % 10 == 9 || self.cells.get(cell_num+1).unwrap().get_status() == CellStatus::Closed {
+                return false;
+            }
+        }
+        true
     }
 
     fn change_cell_status(&mut self,
                           cell_num: usize,
-                          new_status: CellStatus)
+                          new_status: CellStatus,
+                          new_color: Color)
                           -> Result<(), GridError> {
-        info!("Attempting to change the status of cell: {} to {:?}",
-              cell_num,
-              new_status);
         if !self.is_valid_cell(cell_num) {
-            error!("Tried to change the status of an invalid cell: {}",
-                   cell_num);
             return Err(GridError::InvalidGridNumber);
         }
-        if self.cells[cell_num] == new_status {
-            let error = match new_status {
-                CellStatus::Open => GridError::CellAlreadyOpen,
-                CellStatus::Closed(_) => GridError::CellAlreadyClosed,
-                CellStatus::ActivePiece(_) => GridError::CellAlreadyActive,
-            };
-            return Err(error);
-        }
-
-        self.cells[cell_num] = new_status;
-        info!("Success");
+        let mut cell = self.cells.get_mut(cell_num).unwrap();
+        cell.set_status(new_status);
+        cell.set_color(new_color);
         Ok(())
     }
 
@@ -148,40 +225,11 @@ impl Grid {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CellStatus {
     Open,
-    Closed(Color),
-    ActivePiece(Color),
-}
-
-impl PartialEq for CellStatus {
-    fn eq(&self, other: &CellStatus) -> bool {
-        match *self {
-            CellStatus::Open => match *other {
-                CellStatus::Open => true,
-                _ => false,
-            },
-            CellStatus::Closed(_) => match *other {
-                CellStatus::Closed(_) => true,
-                _ => false,
-            },
-            CellStatus::ActivePiece(_) => match *other {
-                CellStatus::ActivePiece(_) => true,
-                _ => false,
-            },
-        }
-    }
-}
-
-impl CellStatus {
-    pub fn get_color(&self) -> Color {
-        match *self {
-            CellStatus::Closed(c) => c,
-            CellStatus::ActivePiece(c) => c,
-            CellStatus::Open => [0.95, 0.95, 0.95, 1.0],
-        }
-    }
+    Closed,
+    ActivePiece,
 }
 
 #[derive(Debug, Clone, Copy)]
