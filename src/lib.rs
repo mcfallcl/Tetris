@@ -249,7 +249,26 @@ pub struct CycleTimer {
 }
 
 impl CycleTimer {
-    pub fn new(cycle_time: Duration) -> CycleTimer {
-        CycleTimer{ last_cycle: time::get_time(), cycle_time: cycle_time }
+    pub fn new(cycle_time: i64) -> CycleTimer {
+        CycleTimer{ last_cycle: time::get_time(), cycle_time: Duration::seconds(1) }
+    }
+
+    pub fn reset(&mut self) {
+        self.last_cycle = time::get_time();
+    }
+
+    fn check(&self) -> bool {
+        let current_time = time::get_time();
+
+        self.last_cycle + self.cycle_time < current_time
+    }
+
+    pub fn cycle(&mut self) -> bool {
+        if self.check() {
+            self.reset();
+            true
+        } else {
+            false
+        }
     }
 }

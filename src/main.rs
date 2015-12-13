@@ -4,7 +4,7 @@ extern crate tetris;
 use piston_window::*;
 use piston_window::rectangle::{Shape, Border};
 
-use tetris::{Grid, Piece, CellStatus, GridError};
+use tetris::{Grid, Piece, CellStatus, GridError, CycleTimer};
 use self::tetris::logger;
 
 const GRID_WIDTH: f64 = 215.0;
@@ -26,7 +26,7 @@ fn main() {
                                        .build()
                                        .unwrap();
 
-    window.set_ups(1);
+    let mut timer = CycleTimer::new(1);
     grid.new_piece(Piece::Square, tetris::BLACK);
 
     for e in window {
@@ -54,6 +54,8 @@ fn main() {
                 i += 1;
             }
         });
-        grid.cycle();
+        if timer.cycle() {
+            grid.cycle();
+        }
     }
 }
