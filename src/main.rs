@@ -32,7 +32,6 @@ fn main() {
     for e in window {
         let grid_corner: f64 = 20.0;
         let game_grid: [f64; 4] = [grid_corner, grid_corner, GRID_WIDTH, GRID_HEIGHT];
-        let key =
         e.draw_2d(|c, g| {
             clear(BACKGROUND_COLOR, g);
             rectangle(GRID_BACKGROUND_COLOR, game_grid, c.transform, g);

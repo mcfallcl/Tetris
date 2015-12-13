@@ -129,17 +129,17 @@ impl Grid {
         if self.check_active_down() {
             for i in 0..4 {
                 cell_num = self.active_cells[i];
-                self.open_cell(cell_num);
+                self.open_cell(cell_num).unwrap();
                 self.active_cells[i] += 10;
             }
             for i in 0..4 {
                 cell_num = self.active_cells[i];
-                self.activate_cell(cell_num);
+                self.activate_cell(cell_num).unwrap();
             }
         } else {
             for i in 0..4 {
                 cell_num = self.active_cells[i];
-                self.close_cell(cell_num);
+                self.close_cell(cell_num).unwrap();
             }
             self.new_piece(Piece::Square, BLACK);
         }
@@ -154,12 +154,12 @@ impl Grid {
         let mut cell_num: usize;
         for i in 0..4 {
             cell_num = self.active_cells[i];
-            self.open_cell(cell_num);
+            self.open_cell(cell_num).unwrap();
             self.active_cells[i] += 1;
         }
         for i in 0..4 {
             cell_num = self.active_cells[i];
-            self.activate_cell(cell_num);
+            self.activate_cell(cell_num).unwrap();
         }
     }
 
@@ -168,12 +168,12 @@ impl Grid {
         let mut cell_num: usize;
         for i in 0..4 {
             cell_num = self.active_cells[i];
-            self.open_cell(cell_num);
+            self.open_cell(cell_num).unwrap();
             self.active_cells[i] -= 1;
         }
         for i in 0..4 {
             cell_num = self.active_cells[i];
-            self.activate_cell(cell_num);
+            self.activate_cell(cell_num).unwrap();
         }
     }
 
@@ -181,7 +181,6 @@ impl Grid {
     fn check_active_down(&self) -> bool {
         for i in 0..4 {
             let cell_num = self.active_cells[i];
-            let cell = self.cells.get(cell_num).unwrap();
             if cell_num + 10 >= 240 || self.cells.get(cell_num+10).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
@@ -241,4 +240,16 @@ pub enum GridError {
     CellAlreadyOpen,
     CellAlreadyActive,
     InvalidGridNumber,
+}
+
+#[derive(Debug)]
+pub struct CycleTimer {
+    last_cycle: Timespec,
+    cycle_time: Duration,
+}
+
+impl CycleTimer {
+    pub fn new(cycle_time: Duration) -> CycleTimer {
+        CycleTimer{ last_cycle: time::get_time(), cycle_time: cycle_time }
+    }
 }
