@@ -7,3 +7,4 @@ authors = ["Christopher McFall <mcfallcl@gmail.com>"]
 
 piston_window = "0.32"
 log = "0.3"
+time = "0.1"

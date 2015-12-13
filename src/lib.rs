@@ -1,10 +1,13 @@
 #[macro_use]
 extern crate log;
 extern crate piston_window;
+extern crate time;
 
 use std::slice::{Iter, IterMut};
 
 use self::piston_window::types::Color;
+
+use self::time::{Duration, Timespec};
 
 pub const OPEN_COLOR: Color = [0.9, 0.9, 0.9, 1.0];
 pub const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
