@@ -250,7 +250,7 @@ pub struct CycleTimer {
 
 impl CycleTimer {
     pub fn new(cycle_time: i64) -> CycleTimer {
-        CycleTimer{ last_cycle: time::get_time(), cycle_time: Duration::seconds(1) }
+        CycleTimer{ last_cycle: time::get_time(), cycle_time: Duration::milliseconds(cycle_time) }
     }
 
     pub fn reset(&mut self) {

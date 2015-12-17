@@ -21,12 +21,12 @@ fn main() {
         println!("Error initializing the logger: {:?}", e)
     });
     let mut grid = Grid::init();
-    let mut window: PistonWindow = WindowSettings::new("Tak's Tetris", (640, 480))
+    let window: PistonWindow = WindowSettings::new("Tak's Tetris", (640, 480))
                                        .exit_on_esc(true)
                                        .build()
                                        .unwrap();
 
-    let mut timer = CycleTimer::new(1);
+    let mut timer = CycleTimer::new(600);
     grid.new_piece(Piece::Square, tetris::BLACK);
 
     for e in window {
