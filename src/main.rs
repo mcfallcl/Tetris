@@ -4,7 +4,7 @@ extern crate tetris;
 use piston_window::*;
 use piston_window::rectangle::{Shape, Border};
 
-use tetris::{Grid, Piece, CellStatus, GridError, CycleTimer};
+use tetris::{Grid, CycleTimer};
 use self::tetris::logger;
 
 const GRID_WIDTH: f64 = 215.0;
