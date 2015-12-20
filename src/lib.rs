@@ -243,6 +243,7 @@ impl Grid {
             let mut cell = self.cells.get_mut(index).unwrap();
             cell.open();
         }
+        self.move_closed_down(row * 10);
     }
 
     fn check_if_row_full(&self, row: usize) -> bool {
@@ -264,6 +265,13 @@ impl Grid {
 
     fn game_over(&mut self) {
         self.game_over = true;
+    }
+
+    fn move_closed_down(&mut self, above: usize) {
+        let mut index = above - 1;
+        while index > 0 {
+
+        }
     }
 
     // returns true if the piece can move down
