@@ -60,7 +60,24 @@ impl Cell {
     }
 
     pub fn set_status(&mut self, new_status: CellStatus) {
-        self.status = new_status;
+        match new_status {
+            CellStatus::Open => self.open(),
+            CellStatus::Closed => self.close(),
+            CellStatus::Active => self.active(),
+        }
+    }
+
+    pub fn open(&mut self) {
+        self.status = CellStatus::Open;
+        self.color = OPEN_COLOR;
+    }
+
+    pub fn close(&mut self) {
+        self.status = CellStatus::Closed;
+    }
+
+    pub fn active(&mut self) {
+        self.status = CellStatus::Active;
     }
 
     pub fn get_color(&self) -> Color {
@@ -76,6 +93,7 @@ pub struct Grid {
     cells: Vec<Cell>,
     active_cells: [usize; 4],
     active_color: Color,
+    game_over: bool,
 }
 
 impl Grid {
@@ -86,6 +104,7 @@ impl Grid {
             cells: cells,
             active_cells: [240; 4],
             active_color: BLACK,
+            game_over: false,
         };
         info!("Grid successfully initialized.");
         grid
@@ -123,7 +142,7 @@ impl Grid {
 
     pub fn activate_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
         let color = self.active_color;
-        self.change_cell_status(cell_num, CellStatus::ActivePiece, color)
+        self.change_cell_status(cell_num, CellStatus::Active, color)
     }
 
     pub fn iter(&self) -> Iter<Cell> {
@@ -153,6 +172,7 @@ impl Grid {
             }
             self.new_piece(BLACK);
         }
+        self.check_rows();
     }
 
     pub fn move_active_down(&mut self) {
@@ -203,19 +223,48 @@ impl Grid {
     }
 
     fn check_rows(&mut self) {
+        self.clear_full_rows();
         if self.check_if_game_over() {
             self.game_over();
         }
-
     }
 
-    fn clear_full_rows(&mut self) {}
+    fn clear_full_rows(&mut self) {
+        for row in 0..24 {
+            if self.check_if_row_full(row) {
+                self.clear_row(row);
+            }
+        }
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        for i in 0..10 {
+            let index = (row * 10) + i;
+            let mut cell = self.cells.get_mut(index).unwrap();
+            cell.open();
+        }
+    }
+
+    fn check_if_row_full(&self, row: usize) -> bool {
+        let mut result = true;
+        for i in 0..10 {
+            let index = (row * 10) + i;
+            let cell = self.cells.get(index).unwrap();
+            match cell.get_status() {
+                CellStatus::Closed => {},
+                _ => result = false,
+            }
+        }
+        result
+    }
 
     pub fn is_game_over(&self) -> bool {
-        false
+        self.game_over
     }
 
-    fn game_over(&mut self) {}
+    fn game_over(&mut self) {
+        self.game_over = true;
+    }
 
     // returns true if the piece can move down
     fn check_active_down(&self) -> bool {
@@ -244,7 +293,7 @@ impl Grid {
         for i in 0..4 {
             let cell_num = self.active_cells[i];
             if (cell_num - 1) % 10 == 9 ||
-               self.cells.get(cell_num + 1).unwrap().get_status() == CellStatus::Closed {
+               self.cells.get(cell_num - 1).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
@@ -274,7 +323,7 @@ impl Grid {
 pub enum CellStatus {
     Open,
     Closed,
-    ActivePiece,
+    Active,
 }
 
 #[derive(Debug, Clone, Copy)]
