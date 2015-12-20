@@ -231,6 +231,14 @@ impl Grid {
         }
     }
 
+    pub fn rotate_active_cw(&mut self) {
+
+    }
+
+    pub fn rotate_active_ccw(&mut self) {
+
+    }
+
     fn check_if_game_over(&self) -> bool {
         let mut result = false;
         for i in 0..40 {
