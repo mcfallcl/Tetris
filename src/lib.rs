@@ -13,6 +13,14 @@ use self::time::{Duration, Timespec};
 pub const OPEN_COLOR: Color = [0.9, 0.9, 0.9, 1.0];
 pub const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
 
+pub const LIGHT_BLUE: Color = [0.0, 1.0, 1.0, 1.0];
+pub const BLUE: Color = [0.0, 60.0/255.0, 1.0, 1.0];
+pub const ORANGE: Color = [1.0, 174.0/255.0, 0.0, 1.0];
+pub const YELLOW: Color = [1.0, 1.0, 0.0, 1.0];
+pub const GREEN: Color = [30.0/255.0, 1.0, 0.0, 1.0];
+pub const RED: Color = [1.0, 30.0/255.0, 0.0, 1.0];
+pub const PURPLE: Color = [220.0/255.0, 0.0, 1.0, 1.0];
+
 pub mod logger;
 
 #[derive(Debug)]
@@ -37,6 +45,18 @@ impl Piece {
             5 => Piece::LeftZig,
             6 => Piece::Square,
             _ => panic!("Invalid piece num"),
+        }
+    }
+
+    pub fn get_color(&self) -> Color {
+        match *self {
+            Piece::Straight => LIGHT_BLUE,
+            Piece::LShape => ORANGE,
+            Piece::BackwardLShape => BLUE,
+            Piece::TShape => PURPLE,
+            Piece::RightZig => GREEN,
+            Piece::LeftZig => RED,
+            Piece::Square => YELLOW,
         }
     }
 }
@@ -110,7 +130,7 @@ impl Grid {
         grid
     }
 
-    pub fn new_piece(&mut self, color: Color) {
+    pub fn new_piece(&mut self) {
         let mut rng = rand::random::<u8>();
         while rng > 252 {
             rng = rand::random::<u8>();
@@ -128,7 +148,7 @@ impl Grid {
         for i in 0..4 {
             self.activate_cell(i).unwrap();
         }
-        self.active_color = color;
+        self.active_color = piece.get_color();
     }
 
     pub fn close_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
@@ -170,7 +190,7 @@ impl Grid {
                 cell_num = self.active_cells[i];
                 self.close_cell(cell_num).unwrap();
             }
-            self.new_piece(BLACK);
+            self.new_piece();
         }
         self.check_rows();
     }

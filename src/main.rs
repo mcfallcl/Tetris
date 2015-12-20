@@ -25,7 +25,7 @@ fn main() {
                                    .unwrap();
 
     let mut timer = CycleTimer::new(800);
-    grid.new_piece(tetris::BLACK);
+    grid.new_piece();
 
     for e in window {
         let grid_corner: f64 = 20.0;
