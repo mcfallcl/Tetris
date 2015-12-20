@@ -270,7 +270,9 @@ impl Grid {
     fn move_closed_down(&mut self, above: usize) {
         let mut index = above - 1;
         while index > 0 {
-
+            self.cells[index + 10] = self.cells[index].clone();
+            self.cells[index].open();
+            index -= 1;
         }
     }
 
