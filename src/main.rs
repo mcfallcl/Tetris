@@ -68,5 +68,8 @@ fn main() {
         if timer.cycle() {
             grid.cycle();
         }
+        if grid.is_game_over() {
+            break;
+        }
     }
 }
