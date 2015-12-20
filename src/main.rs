@@ -17,21 +17,32 @@ const CELL_HEIGHT: f64 = GRID_HEIGHT / 20.0;
 const BACKGROUND_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 
 fn main() {
-    logger::init_debug().unwrap_or_else(|e| {
-        println!("Error initializing the logger: {:?}", e)
-    });
+    logger::init_debug().unwrap_or_else(|e| println!("Error initializing the logger: {:?}", e));
     let mut grid = Grid::init();
     let window: PistonWindow = WindowSettings::new("Tak's Tetris", (640, 480))
-                                       .exit_on_esc(true)
-                                       .build()
-                                       .unwrap();
+                                   .exit_on_esc(true)
+                                   .build()
+                                   .unwrap();
 
-    let mut timer = CycleTimer::new(600);
-    grid.new_piece(Piece::Square, tetris::BLACK);
+    let mut timer = CycleTimer::new(800);
+    grid.new_piece(tetris::BLACK);
 
     for e in window {
         let grid_corner: f64 = 20.0;
         let game_grid: [f64; 4] = [grid_corner, grid_corner, GRID_WIDTH, GRID_HEIGHT];
+
+        if let Some(button) = e.press_args() {
+            match button {
+                Button::Keyboard(Key::Left) => grid.move_active_left(),
+                Button::Keyboard(Key::Right) => grid.move_active_right(),
+                Button::Keyboard(Key::Down) => {
+                    grid.move_active_down();
+                    timer.reset();
+                }
+                _ => {}
+            };
+        }
+
         e.draw_2d(|c, g| {
             clear(BACKGROUND_COLOR, g);
             rectangle(GRID_BACKGROUND_COLOR, game_grid, c.transform, g);

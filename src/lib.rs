@@ -2,6 +2,7 @@
 extern crate log;
 extern crate piston_window;
 extern crate time;
+extern crate rand;
 
 use std::slice::{Iter, IterMut};
 
@@ -23,6 +24,21 @@ pub enum Piece {
     RightZig,
     LeftZig,
     Square,
+}
+
+impl Piece {
+    pub fn new(piece_num: u8) -> Piece {
+        match piece_num {
+            0 => Piece::Straight,
+            1 => Piece::LShape,
+            2 => Piece::BackwardLShape,
+            3 => Piece::TShape,
+            4 => Piece::RightZig,
+            5 => Piece::LeftZig,
+            6 => Piece::Square,
+            _ => panic!("Invalid piece num"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -56,21 +72,6 @@ impl Cell {
     }
 }
 
-impl Piece {
-    pub fn new(piece_num: u8) -> Piece {
-        match piece_num {
-            0 => Piece::Straight,
-            1 => Piece::LShape,
-            2 => Piece::BackwardLShape,
-            3 => Piece::TShape,
-            4 => Piece::RightZig,
-            5 => Piece::LeftZig,
-            6 => Piece::Square,
-            _ => panic!("Invalid piece num"),
-        }
-    }
-}
-
 pub struct Grid {
     cells: Vec<Cell>,
     active_cells: [usize; 4],
@@ -81,12 +82,21 @@ impl Grid {
     pub fn init() -> Grid {
         info!("Initializing grid...");
         let cells = vec![Cell::new(); 240];
-        let grid = Grid { cells: cells, active_cells: [240; 4], active_color: BLACK };
+        let grid = Grid {
+            cells: cells,
+            active_cells: [240; 4],
+            active_color: BLACK,
+        };
         info!("Grid successfully initialized.");
         grid
     }
 
-    pub fn new_piece(&mut self, piece: Piece, color: Color) {
+    pub fn new_piece(&mut self, color: Color) {
+        let mut rng = rand::random::<u8>();
+        while rng > 252 {
+            rng = rand::random::<u8>();
+        }
+        let piece = Piece::new(rng % 7);
         match piece {
             Piece::Straight => self.active_cells = [5, 15, 25, 35],
             Piece::LShape => self.active_cells = [14, 24, 34, 35],
@@ -141,7 +151,7 @@ impl Grid {
                 cell_num = self.active_cells[i];
                 self.close_cell(cell_num).unwrap();
             }
-            self.new_piece(Piece::Square, BLACK);
+            self.new_piece(BLACK);
         }
     }
 
@@ -150,7 +160,9 @@ impl Grid {
     }
 
     pub fn move_active_right(&mut self) {
-        if !self.check_active_right() { return; }
+        if !self.check_active_right() {
+            return;
+        }
         let mut cell_num: usize;
         for i in 0..4 {
             cell_num = self.active_cells[i];
@@ -164,7 +176,9 @@ impl Grid {
     }
 
     pub fn move_active_left(&mut self) {
-        if !self.check_active_left() { return; }
+        if !self.check_active_left() {
+            return;
+        }
         let mut cell_num: usize;
         for i in 0..4 {
             cell_num = self.active_cells[i];
@@ -177,11 +191,38 @@ impl Grid {
         }
     }
 
+    fn check_if_game_over(&self) -> bool {
+        let mut result = false;
+        for i in 0..40 {
+            match self.cells.get(i).unwrap().get_status() {
+                CellStatus::Closed => result = true,
+                _ => {}
+            }
+        }
+        result
+    }
+
+    fn check_rows(&mut self) {
+        if self.check_if_game_over() {
+            self.game_over();
+        }
+
+    }
+
+    fn clear_full_rows(&mut self) {}
+
+    pub fn is_game_over(&self) -> bool {
+        false
+    }
+
+    fn game_over(&mut self) {}
+
     // returns true if the piece can move down
     fn check_active_down(&self) -> bool {
         for i in 0..4 {
             let cell_num = self.active_cells[i];
-            if cell_num + 10 >= 240 || self.cells.get(cell_num+10).unwrap().get_status() == CellStatus::Closed {
+            if cell_num + 10 >= 240 ||
+               self.cells.get(cell_num + 10).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
@@ -191,7 +232,8 @@ impl Grid {
     fn check_active_right(&self) -> bool {
         for i in 0..4 {
             let cell_num = self.active_cells[i];
-            if (cell_num + 1) % 10 == 0 || self.cells.get(cell_num+1).unwrap().get_status() == CellStatus::Closed {
+            if (cell_num + 1) % 10 == 0 ||
+               self.cells.get(cell_num + 1).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
@@ -201,7 +243,8 @@ impl Grid {
     fn check_active_left(&self) -> bool {
         for i in 0..4 {
             let cell_num = self.active_cells[i];
-            if (cell_num - 1) % 10 == 9 || self.cells.get(cell_num+1).unwrap().get_status() == CellStatus::Closed {
+            if (cell_num - 1) % 10 == 9 ||
+               self.cells.get(cell_num + 1).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
@@ -250,7 +293,10 @@ pub struct CycleTimer {
 
 impl CycleTimer {
     pub fn new(cycle_time: i64) -> CycleTimer {
-        CycleTimer{ last_cycle: time::get_time(), cycle_time: Duration::milliseconds(cycle_time) }
+        CycleTimer {
+            last_cycle: time::get_time(),
+            cycle_time: Duration::milliseconds(cycle_time),
+        }
     }
 
     pub fn reset(&mut self) {
