@@ -5,6 +5,9 @@ extern crate time;
 extern crate rand;
 
 use std::slice::{Iter, IterMut};
+use std::collections::VecDeque;
+
+use rand::Rng;
 
 use self::piston_window::types::Color;
 
@@ -14,12 +17,12 @@ pub const OPEN_COLOR: Color = [0.9, 0.9, 0.9, 1.0];
 pub const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
 
 pub const LIGHT_BLUE: Color = [0.0, 1.0, 1.0, 1.0];
-pub const BLUE: Color = [0.0, 60.0/255.0, 1.0, 1.0];
-pub const ORANGE: Color = [1.0, 174.0/255.0, 0.0, 1.0];
+pub const BLUE: Color = [0.0, 60.0 / 255.0, 1.0, 1.0];
+pub const ORANGE: Color = [1.0, 174.0 / 255.0, 0.0, 1.0];
 pub const YELLOW: Color = [1.0, 1.0, 0.0, 1.0];
-pub const GREEN: Color = [30.0/255.0, 1.0, 0.0, 1.0];
-pub const RED: Color = [1.0, 30.0/255.0, 0.0, 1.0];
-pub const PURPLE: Color = [220.0/255.0, 0.0, 1.0, 1.0];
+pub const GREEN: Color = [30.0 / 255.0, 1.0, 0.0, 1.0];
+pub const RED: Color = [1.0, 30.0 / 255.0, 0.0, 1.0];
+pub const PURPLE: Color = [220.0 / 255.0, 0.0, 1.0, 1.0];
 
 pub mod logger;
 
@@ -130,20 +133,36 @@ impl Piece {
     fn i_cw(&self) -> [usize; 4] {
         assert!(self.shape == PieceShape::Straight);
         match self.orientation {
-            Orientation::Up => [self.cells[0] - 8, self.cells[1] + 1, self.cells[2] + 10, self.cells[3] + 19],
-            Orientation::Right => [self.cells[0] + 21, self.cells[1] + 10, self.cells[2] - 1, self.cells[3] - 12],
-            Orientation::Down => [self.cells[0] + 8, self.cells[1] - 1, self.cells[2] - 10, self.cells[3] - 19],
-            Orientation::Left => [self.cells[0] - 21, self.cells[1] - 10, self.cells[2] + 1, self.cells[3] + 12],
+            Orientation::Up => {
+                [self.cells[0] - 8, self.cells[1] + 1, self.cells[2] + 10, self.cells[3] + 19]
+            }
+            Orientation::Right => {
+                [self.cells[0] + 21, self.cells[1] + 10, self.cells[2] - 1, self.cells[3] - 12]
+            }
+            Orientation::Down => {
+                [self.cells[0] + 8, self.cells[1] - 1, self.cells[2] - 10, self.cells[3] - 19]
+            }
+            Orientation::Left => {
+                [self.cells[0] - 21, self.cells[1] - 10, self.cells[2] + 1, self.cells[3] + 12]
+            }
         }
     }
 
     fn i_counter_cw(&self) -> [usize; 4] {
         assert!(self.shape == PieceShape::Straight);
         match self.orientation {
-            Orientation::Up => [self.cells[0] + 8, self.cells[1] - 1, self.cells[2] - 10, self.cells[3] - 19],
-            Orientation::Right => [self.cells[0] - 21, self.cells[1] - 10, self.cells[2] + 1, self.cells[3] + 12],
-            Orientation::Down => [self.cells[0] - 8, self.cells[1] + 1, self.cells[2] + 10, self.cells[3] + 19],
-            Orientation::Left => [self.cells[0] + 21, self.cells[1] + 10, self.cells[2] - 1, self.cells[3] - 12],
+            Orientation::Up => {
+                [self.cells[0] + 8, self.cells[1] - 1, self.cells[2] - 10, self.cells[3] - 19]
+            }
+            Orientation::Right => {
+                [self.cells[0] - 21, self.cells[1] - 10, self.cells[2] + 1, self.cells[3] + 12]
+            }
+            Orientation::Down => {
+                [self.cells[0] - 8, self.cells[1] + 1, self.cells[2] + 10, self.cells[3] + 19]
+            }
+            Orientation::Left => {
+                [self.cells[0] + 21, self.cells[1] + 10, self.cells[2] - 1, self.cells[3] - 12]
+            }
         }
     }
 
@@ -161,9 +180,10 @@ impl Piece {
             posit[i] %= 10;
         }
         for i in 0..4 {
-            for j in i+1..4 {
+            for j in i + 1..4 {
                 let value = posit[i].wrapping_sub(posit[j]);
-                if value > 4 && value < 400 {               //not sure if good idea.
+                if value > 4 && value < 400 {
+                    // not sure if good idea.
                     return false;
                 }
             }
@@ -342,13 +362,9 @@ impl Grid {
         }
     }
 
-    pub fn rotate_active_cw(&mut self) {
+    pub fn rotate_active_cw(&mut self) {}
 
-    }
-
-    pub fn rotate_active_ccw(&mut self) {
-
-    }
+    pub fn rotate_active_ccw(&mut self) {}
 
     fn check_if_game_over(&self) -> bool {
         let mut result = false;
@@ -391,7 +407,7 @@ impl Grid {
             let index = (row * 10) + i;
             let cell = self.cells.get(index).unwrap();
             match cell.get_status() {
-                CellStatus::Closed => {},
+                CellStatus::Closed => {}
                 _ => result = false,
             }
         }
@@ -513,6 +529,48 @@ impl CycleTimer {
             true
         } else {
             false
+        }
+    }
+}
+
+pub struct PieceGenerator {
+    pieces: VecDeque<PieceShape>,
+}
+
+impl PieceGenerator {
+    pub fn new() -> PieceGenerator {
+        let pieces = VecDeque::with_capacity(10);
+        let mut generator = PieceGenerator { pieces: pieces };
+        generator.populate();
+        generator
+    }
+
+    pub fn pop(&mut self) -> PieceShape {
+        if self.pieces.len() < 4 {
+            self.populate();
+        }
+        self.pieces.pop_front().unwrap()
+    }
+
+    fn push(&mut self, piece: PieceShape) {
+        self.pieces.push_front(piece);
+    }
+
+    fn populate(&mut self) {
+        use self::PieceShape::*;
+        let mut new_pieces: VecDeque<_> = vec![Straight,
+                                               LShape,
+                                               BackwardLShape,
+                                               TShape,
+                                               RightZig,
+                                               LeftZig,
+                                               Square]
+                                              .into_iter()
+                                              .collect();
+        let mut rng = rand::thread_rng();
+        for i in (0..7).rev() {
+            let index = rng.gen_range(0, i);
+            self.push(new_pieces.swap_remove_back(index).unwrap());
         }
     }
 }
