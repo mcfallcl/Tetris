@@ -559,7 +559,7 @@ impl PieceGenerator {
     }
 
     fn push(&mut self, piece: PieceShape) {
-        self.pieces.push_front(piece);
+        self.pieces.push_back(piece);
     }
 
     fn populate(&mut self) {
@@ -576,7 +576,8 @@ impl PieceGenerator {
         let mut rng = rand::thread_rng();
         for i in (1..7).rev() {
             let index = rng.gen_range(0, i);
-            self.push(new_pieces.swap_remove_back(index).unwrap());
+            let new_piece = new_pieces.swap_remove_back(index).unwrap();
+            self.push(new_piece);
         }
         self.push(new_pieces.remove(0).unwrap());
     }
