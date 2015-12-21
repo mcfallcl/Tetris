@@ -23,8 +23,8 @@ pub const PURPLE: Color = [220.0/255.0, 0.0, 1.0, 1.0];
 
 pub mod logger;
 
-#[derive(Debug)]
-pub enum Piece {
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum PieceShape {
     Straight,
     LShape,
     BackwardLShape,
@@ -34,30 +34,141 @@ pub enum Piece {
     Square,
 }
 
-impl Piece {
-    pub fn new(piece_num: u8) -> Piece {
+impl PieceShape {
+    pub fn new(piece_num: u8) -> PieceShape {
         match piece_num {
-            0 => Piece::Straight,
-            1 => Piece::LShape,
-            2 => Piece::BackwardLShape,
-            3 => Piece::TShape,
-            4 => Piece::RightZig,
-            5 => Piece::LeftZig,
-            6 => Piece::Square,
+            0 => PieceShape::Straight,
+            1 => PieceShape::LShape,
+            2 => PieceShape::BackwardLShape,
+            3 => PieceShape::TShape,
+            4 => PieceShape::RightZig,
+            5 => PieceShape::LeftZig,
+            6 => PieceShape::Square,
             _ => panic!("Invalid piece num"),
         }
     }
 
     pub fn get_color(&self) -> Color {
         match *self {
-            Piece::Straight => LIGHT_BLUE,
-            Piece::LShape => ORANGE,
-            Piece::BackwardLShape => BLUE,
-            Piece::TShape => PURPLE,
-            Piece::RightZig => GREEN,
-            Piece::LeftZig => RED,
-            Piece::Square => YELLOW,
+            PieceShape::Straight => LIGHT_BLUE,
+            PieceShape::LShape => ORANGE,
+            PieceShape::BackwardLShape => BLUE,
+            PieceShape::TShape => PURPLE,
+            PieceShape::RightZig => GREEN,
+            PieceShape::LeftZig => RED,
+            PieceShape::Square => YELLOW,
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum Orientation {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
+#[derive(Debug)]
+struct Piece {
+    cells: [usize; 4],
+    color: Color,
+    shape: PieceShape,
+    orientation: Orientation,
+}
+
+impl Piece {
+    pub fn create(shape: PieceShape) -> Piece {
+        let cells = match shape {
+            PieceShape::Straight => [33, 34, 35, 36],
+            PieceShape::LShape => [34, 33, 25, 35],
+            PieceShape::BackwardLShape => [34, 33, 23, 35],
+            PieceShape::TShape => [34, 33, 35, 24],
+            PieceShape::RightZig => [34, 33, 24, 25],
+            PieceShape::LeftZig => [34, 24, 23, 35],
+            PieceShape::Square => [24, 25, 34, 35],
+        };
+
+        Piece {
+            cells: cells,
+            color: shape.get_color(),
+            shape: shape,
+            orientation: Orientation::Up,
+        }
+    }
+
+    pub fn potential_cw_posit(&self) -> [usize; 4] {
+        match self.shape {
+            PieceShape::Square => self.cells,
+            PieceShape::Straight => self.i_cw(),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn potential_counter_cw_posit(&self) -> [usize; 4] {
+        match self.shape {
+            PieceShape::Square => self.cells,
+            PieceShape::Straight => self.i_counter_cw(),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn rotate_cw(&mut self) {
+        let potential_posit = self.potential_cw_posit();
+        if !Self::is_off_side(potential_posit) {
+            self.cells = potential_posit;
+        }
+    }
+
+    pub fn rotate_counter_cw(&mut self) {
+        let potential_posit = self.potential_counter_cw_posit();
+        if !Self::is_off_side(potential_posit) {
+            self.cells = potential_posit;
+        }
+    }
+
+    fn i_cw(&self) -> [usize; 4] {
+        assert!(self.shape == PieceShape::Straight);
+        match self.orientation {
+            Orientation::Up => [self.cells[0] - 8, self.cells[1] + 1, self.cells[2] + 10, self.cells[3] + 19],
+            Orientation::Right => [self.cells[0] + 21, self.cells[1] + 10, self.cells[2] - 1, self.cells[3] - 12],
+            Orientation::Down => [self.cells[0] + 8, self.cells[1] - 1, self.cells[2] - 10, self.cells[3] - 19],
+            Orientation::Left => [self.cells[0] - 21, self.cells[1] - 10, self.cells[2] + 1, self.cells[3] + 12],
+        }
+    }
+
+    fn i_counter_cw(&self) -> [usize; 4] {
+        assert!(self.shape == PieceShape::Straight);
+        match self.orientation {
+            Orientation::Up => [self.cells[0] + 8, self.cells[1] - 1, self.cells[2] - 10, self.cells[3] - 19],
+            Orientation::Right => [self.cells[0] - 21, self.cells[1] - 10, self.cells[2] + 1, self.cells[3] + 12],
+            Orientation::Down => [self.cells[0] - 8, self.cells[1] + 1, self.cells[2] + 10, self.cells[3] + 19],
+            Orientation::Left => [self.cells[0] + 21, self.cells[1] + 10, self.cells[2] - 1, self.cells[3] - 12],
+        }
+    }
+
+    fn cw(&self) -> [usize; 4] {
+        unimplemented!();
+    }
+
+    fn counter_cw(&self) -> [usize; 4] {
+        unimplemented!();
+    }
+
+    // Very hacky solution. Especially the wrap around subtraction.
+    fn is_off_side(mut posit: [usize; 4]) -> bool {
+        for i in 0..4 {
+            posit[i] %= 10;
+        }
+        for i in 0..4 {
+            for j in i+1..4 {
+                let value = posit[i].wrapping_sub(posit[j]);
+                if value > 4 && value < 400 {               //not sure if good idea.
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
 
@@ -135,15 +246,15 @@ impl Grid {
         while rng > 252 {
             rng = rand::random::<u8>();
         }
-        let piece = Piece::new(rng % 7);
+        let piece = PieceShape::new(rng % 7);
         match piece {
-            Piece::Straight => self.active_cells = [5, 15, 25, 35],
-            Piece::LShape => self.active_cells = [14, 24, 34, 35],
-            Piece::BackwardLShape => self.active_cells = [15, 25, 34, 35],
-            Piece::TShape => self.active_cells = [23, 24, 25, 34],
-            Piece::RightZig => self.active_cells = [24, 25, 35, 36],
-            Piece::LeftZig => self.active_cells = [25, 26, 34, 35],
-            Piece::Square => self.active_cells = [24, 25, 34, 35],
+            PieceShape::Straight => self.active_cells = [5, 15, 25, 35],
+            PieceShape::LShape => self.active_cells = [14, 24, 34, 35],
+            PieceShape::BackwardLShape => self.active_cells = [15, 25, 34, 35],
+            PieceShape::TShape => self.active_cells = [23, 24, 25, 34],
+            PieceShape::RightZig => self.active_cells = [24, 25, 35, 36],
+            PieceShape::LeftZig => self.active_cells = [25, 26, 34, 35],
+            PieceShape::Square => self.active_cells = [24, 25, 34, 35],
         }
         for i in 0..4 {
             self.activate_cell(i).unwrap();
