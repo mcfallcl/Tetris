@@ -290,14 +290,17 @@ impl Grid {
     }
 
     pub fn close_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
+        debug!("Closing cell: {}", cell_num);
         self.change_cell_status(cell_num, CellStatus::Closed, color)
     }
 
     pub fn open_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
+        debug!("Opening cell: {}", cell_num);
         self.change_cell_status(cell_num, CellStatus::Open, OPEN_COLOR)
     }
 
     pub fn activate_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
+        debug!("Activating cell: {}", cell_num);
         self.change_cell_status(cell_num, CellStatus::Active, color)
     }
 
@@ -415,6 +418,7 @@ impl Grid {
 
     fn game_over(&mut self) {
         self.game_over = true;
+        info!("Game Over!");
     }
 
     fn move_closed_down(&mut self, above: usize) {
@@ -430,7 +434,7 @@ impl Grid {
     fn check_posit(&self, mut posit: [usize; 4]) -> bool {
         for i in 0..4 {
             let index = posit[i];
-            if self.cells.get(index).unwrap().get_status() == CellStatus::Closed {
+            if !self.is_valid_cell(index) || self.cells.get(index).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
@@ -443,6 +447,7 @@ impl Grid {
                           new_color: Color)
                           -> Result<(), GridError> {
         if !self.is_valid_cell(cell_num) {
+            error!("Invalid cell number: {}", cell_num);
             return Err(GridError::InvalidGridNumber);
         }
         let mut cell = self.cells.get_mut(cell_num).unwrap();
