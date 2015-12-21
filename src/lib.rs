@@ -226,20 +226,15 @@ impl Piece {
         unimplemented!();
     }
 
-    // Very hacky solution. Especially the wrap around subtraction.
     fn is_not_off_side(mut posit: [usize; 4]) -> bool {
+        let mut has_zero = false;
+        let mut has_nine = false;
         for i in 0..4 {
-            posit[i] %= 10;
+            let modulo = posit[i] % 10;
+            if modulo == 0 { has_zero = true; }
+            if modulo == 9 { has_nine = true; }
         }
-        for i in 0..4 {
-            for j in i + 1..4 {
-                let value = posit[i].wrapping_sub(posit[j]);
-                if value > 4 && value < 400 {
-                    return false;
-                }
-            }
-        }
-        return true;
+        !(has_zero && has_nine)
     }
 }
 
@@ -465,7 +460,6 @@ impl Grid {
         }
     }
 
-    // returns true if the piece can move down
     fn check_posit(&self, mut posit: [usize; 4]) -> bool {
         for i in 0..4 {
             let index = posit[i];
