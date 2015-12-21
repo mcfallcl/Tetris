@@ -139,11 +139,15 @@ impl Piece {
         new_posit
     }
 
-    pub fn rotate_cw(&mut self) {
-        let potential_posit = self.potential_cw_posit();
-        if !Self::is_not_off_side(potential_posit) {
-            self.cells = potential_posit;
-        }
+    pub fn rotate_orient_cw(&mut self) {
+        use self::Orientation::*;
+
+        match self.orientation {
+            Up => self.orientation = Right,
+            Right => self.orientation = Down,
+            Down => self.orientation = Left,
+            Left => self.orientation = Up,
+        };
     }
 
     pub fn rotate_counter_cw(&mut self) {
@@ -389,6 +393,7 @@ impl Grid {
         let potential_posit = self.active_piece.potential_cw_posit();
         if self.check_posit(potential_posit) {
             self.move_active_to(potential_posit);
+            self.active_piece.rotate_orient_cw();
         }
     }
 
