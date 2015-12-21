@@ -38,19 +38,6 @@ pub enum PieceShape {
 }
 
 impl PieceShape {
-    pub fn new(piece_num: u8) -> PieceShape {
-        match piece_num {
-            0 => PieceShape::Straight,
-            1 => PieceShape::LShape,
-            2 => PieceShape::BackwardLShape,
-            3 => PieceShape::TShape,
-            4 => PieceShape::RightZig,
-            5 => PieceShape::LeftZig,
-            6 => PieceShape::Square,
-            _ => panic!("Invalid piece num"),
-        }
-    }
-
     pub fn get_color(&self) -> Color {
         match *self {
             PieceShape::Straight => LIGHT_BLUE,
@@ -100,6 +87,18 @@ impl Piece {
         }
     }
 
+    pub fn move_to(&mut self, new_posit: [usize; 4]) {
+        self.cells = new_posit;
+    }
+
+    pub fn color(&self) -> Color {
+        self.color
+    }
+
+    pub fn cells(&self) -> [usize; 4] {
+        self.cells
+    }
+
     pub fn potential_cw_posit(&self) -> [usize; 4] {
         match self.shape {
             PieceShape::Square => self.cells,
@@ -116,16 +115,40 @@ impl Piece {
         }
     }
 
+    pub fn potential_down_posit(&self) -> [usize; 4] {
+        let mut new_posit: [usize; 4] = [240; 4];
+        for i in 0..4 {
+            new_posit[i] = self.cells[i] + 10;
+        }
+        new_posit
+    }
+
+    pub fn potential_right_posit(&self) -> [usize; 4] {
+        let mut new_posit: [usize; 4] = [240; 4];
+        for i in 0..4 {
+            new_posit[i] = self.cells[i] + 1;
+        }
+        new_posit
+    }
+
+    pub fn potential_left_posit(&self) -> [usize; 4] {
+        let mut new_posit: [usize; 4] = [240; 4];
+        for i in 0..4 {
+            new_posit[i] = self.cells[i] - 1;
+        }
+        new_posit
+    }
+
     pub fn rotate_cw(&mut self) {
         let potential_posit = self.potential_cw_posit();
-        if !Self::is_off_side(potential_posit) {
+        if !Self::is_not_off_side(potential_posit) {
             self.cells = potential_posit;
         }
     }
 
     pub fn rotate_counter_cw(&mut self) {
         let potential_posit = self.potential_counter_cw_posit();
-        if !Self::is_off_side(potential_posit) {
+        if !Self::is_not_off_side(potential_posit) {
             self.cells = potential_posit;
         }
     }
@@ -175,7 +198,7 @@ impl Piece {
     }
 
     // Very hacky solution. Especially the wrap around subtraction.
-    fn is_off_side(mut posit: [usize; 4]) -> bool {
+    fn is_not_off_side(mut posit: [usize; 4]) -> bool {
         for i in 0..4 {
             posit[i] %= 10;
         }
@@ -183,7 +206,6 @@ impl Piece {
             for j in i + 1..4 {
                 let value = posit[i].wrapping_sub(posit[j]);
                 if value > 4 && value < 400 {
-                    // not sure if good idea.
                     return false;
                 }
             }
@@ -242,8 +264,8 @@ impl Cell {
 
 pub struct Grid {
     cells: Vec<Cell>,
-    active_cells: [usize; 4],
-    active_color: Color,
+    active_piece: Piece,
+    piece_generator: PieceGenerator,
     game_over: bool,
 }
 
@@ -251,10 +273,11 @@ impl Grid {
     pub fn init() -> Grid {
         info!("Initializing grid...");
         let cells = vec![Cell::new(); 240];
+        let mut generator = PieceGenerator::new();
         let grid = Grid {
             cells: cells,
-            active_cells: [240; 4],
-            active_color: BLACK,
+            active_piece: Piece::create(generator.pop()),
+            piece_generator: generator,
             game_over: false,
         };
         info!("Grid successfully initialized.");
@@ -262,28 +285,11 @@ impl Grid {
     }
 
     pub fn new_piece(&mut self) {
-        let mut rng = rand::random::<u8>();
-        while rng > 252 {
-            rng = rand::random::<u8>();
-        }
-        let piece = PieceShape::new(rng % 7);
-        match piece {
-            PieceShape::Straight => self.active_cells = [5, 15, 25, 35],
-            PieceShape::LShape => self.active_cells = [14, 24, 34, 35],
-            PieceShape::BackwardLShape => self.active_cells = [15, 25, 34, 35],
-            PieceShape::TShape => self.active_cells = [23, 24, 25, 34],
-            PieceShape::RightZig => self.active_cells = [24, 25, 35, 36],
-            PieceShape::LeftZig => self.active_cells = [25, 26, 34, 35],
-            PieceShape::Square => self.active_cells = [24, 25, 34, 35],
-        }
-        for i in 0..4 {
-            self.activate_cell(i).unwrap();
-        }
-        self.active_color = piece.get_color();
+        let piece_shape = self.piece_generator.pop();
+        self.active_piece = Piece::create(piece_shape);
     }
 
-    pub fn close_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
-        let color = self.active_color;
+    pub fn close_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
         self.change_cell_status(cell_num, CellStatus::Closed, color)
     }
 
@@ -291,8 +297,7 @@ impl Grid {
         self.change_cell_status(cell_num, CellStatus::Open, OPEN_COLOR)
     }
 
-    pub fn activate_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
-        let color = self.active_color;
+    pub fn activate_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
         self.change_cell_status(cell_num, CellStatus::Active, color)
     }
 
@@ -305,25 +310,31 @@ impl Grid {
     }
 
     pub fn cycle(&mut self) {
-        let mut cell_num: usize;
-        if self.check_active_down() {
-            for i in 0..4 {
-                cell_num = self.active_cells[i];
-                self.open_cell(cell_num).unwrap();
-                self.active_cells[i] += 10;
-            }
-            for i in 0..4 {
-                cell_num = self.active_cells[i];
-                self.activate_cell(cell_num).unwrap();
-            }
+        let potential_posit = self.active_piece.potential_down_posit();
+        if self.check_posit(potential_posit) {
+            self.move_active_to(potential_posit);
         } else {
             for i in 0..4 {
-                cell_num = self.active_cells[i];
-                self.close_cell(cell_num).unwrap();
+                let cell_num = self.active_piece.cells[i];
+                let color = self.active_piece.color();
+                self.close_cell(cell_num, color).unwrap();
             }
             self.new_piece();
         }
         self.check_rows();
+    }
+
+    fn move_active_to(&mut self, new_posit: [usize; 4]) {
+        for i in 0..4 {
+            let cell_num = self.active_piece.cells[i];
+            self.open_cell(cell_num).unwrap();
+        }
+        self.active_piece.move_to(new_posit);
+        for i in 0..4 {
+            let cell_num = new_posit[i];
+            let color = self.active_piece.color();
+            self.activate_cell(cell_num, color).unwrap();
+        }
     }
 
     pub fn move_active_down(&mut self) {
@@ -331,35 +342,19 @@ impl Grid {
     }
 
     pub fn move_active_right(&mut self) {
-        if !self.check_active_right() {
+        let potential_posit = self.active_piece.potential_right_posit();
+        if !self.check_posit(potential_posit) {
             return;
         }
-        let mut cell_num: usize;
-        for i in 0..4 {
-            cell_num = self.active_cells[i];
-            self.open_cell(cell_num).unwrap();
-            self.active_cells[i] += 1;
-        }
-        for i in 0..4 {
-            cell_num = self.active_cells[i];
-            self.activate_cell(cell_num).unwrap();
-        }
+        self.move_active_to(potential_posit);
     }
 
     pub fn move_active_left(&mut self) {
-        if !self.check_active_left() {
+        let potential_posit = self.active_piece.potential_left_posit();
+        if !self.check_posit(potential_posit) {
             return;
         }
-        let mut cell_num: usize;
-        for i in 0..4 {
-            cell_num = self.active_cells[i];
-            self.open_cell(cell_num).unwrap();
-            self.active_cells[i] -= 1;
-        }
-        for i in 0..4 {
-            cell_num = self.active_cells[i];
-            self.activate_cell(cell_num).unwrap();
-        }
+        self.move_active_to(potential_posit);
     }
 
     pub fn rotate_active_cw(&mut self) {}
@@ -432,37 +427,14 @@ impl Grid {
     }
 
     // returns true if the piece can move down
-    fn check_active_down(&self) -> bool {
+    fn check_posit(&self, mut posit: [usize; 4]) -> bool {
         for i in 0..4 {
-            let cell_num = self.active_cells[i];
-            if cell_num + 10 >= 240 ||
-               self.cells.get(cell_num + 10).unwrap().get_status() == CellStatus::Closed {
+            let index = posit[i];
+            if self.cells.get(index).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
-        true
-    }
-
-    fn check_active_right(&self) -> bool {
-        for i in 0..4 {
-            let cell_num = self.active_cells[i];
-            if (cell_num + 1) % 10 == 0 ||
-               self.cells.get(cell_num + 1).unwrap().get_status() == CellStatus::Closed {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn check_active_left(&self) -> bool {
-        for i in 0..4 {
-            let cell_num = self.active_cells[i];
-            if (cell_num - 1) % 10 == 9 ||
-               self.cells.get(cell_num - 1).unwrap().get_status() == CellStatus::Closed {
-                return false;
-            }
-        }
-        true
+        Piece::is_not_off_side(posit)
     }
 
     fn change_cell_status(&mut self,
@@ -568,9 +540,10 @@ impl PieceGenerator {
                                               .into_iter()
                                               .collect();
         let mut rng = rand::thread_rng();
-        for i in (0..7).rev() {
+        for i in (1..7).rev() {
             let index = rng.gen_range(0, i);
             self.push(new_pieces.swap_remove_back(index).unwrap());
         }
+        self.push(new_pieces.remove(0).unwrap());
     }
 }
