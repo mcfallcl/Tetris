@@ -103,7 +103,7 @@ impl Piece {
         match self.shape {
             PieceShape::Square => self.cells,
             PieceShape::Straight => self.i_cw(),
-            _ => unimplemented!(),
+            _ => self.cw(),
         }
     }
 
@@ -190,7 +190,32 @@ impl Piece {
     }
 
     fn cw(&self) -> [usize; 4] {
-        unimplemented!();
+        let anchor = self.cells[0];
+        let mut new_posit: [usize; 4] = [240; 4];
+        new_posit[0] = anchor;
+        for i in 1..4 {
+            let cell = self.cells[i];
+            if cell > anchor {
+                match (cell - anchor) {
+                    1 => new_posit[i] = anchor + 10,
+                    11 => new_posit[i] = anchor + 9,
+                    10 => new_posit[i] = anchor - 1,
+                    9 => new_posit[i] = anchor - 11,
+                    _ => panic!("Shouldn't have gotten here!"),
+                };
+            } else if anchor > cell {
+                match (anchor - cell) {
+                    1 => new_posit[i] = anchor - 10,
+                    11 => new_posit[i] = anchor - 9,
+                    10 => new_posit[i] = anchor + 1,
+                    9 => new_posit[i] = anchor + 11,
+                    _ => panic!("Shouldn't have gotten here!"),
+                };
+            } else {
+                panic!("Something broke trying to rotate CW");
+            }
+        }
+        new_posit
     }
 
     fn counter_cw(&self) -> [usize; 4] {
@@ -360,7 +385,12 @@ impl Grid {
         self.move_active_to(potential_posit);
     }
 
-    pub fn rotate_active_cw(&mut self) {}
+    pub fn rotate_active_cw(&mut self) {
+        let potential_posit = self.active_piece.potential_cw_posit();
+        if self.check_posit(potential_posit) {
+            self.move_active_to(potential_posit);
+        }
+    }
 
     pub fn rotate_active_ccw(&mut self) {}
 

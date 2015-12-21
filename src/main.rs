@@ -35,6 +35,7 @@ fn main() {
             match button {
                 Button::Keyboard(Key::Left) => grid.move_active_left(),
                 Button::Keyboard(Key::Right) => grid.move_active_right(),
+                Button::Keyboard(Key::Up) => grid.rotate_active_cw(),
                 Button::Keyboard(Key::Down) => {
                     grid.move_active_down();
                     timer.reset();
