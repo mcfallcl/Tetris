@@ -231,8 +231,12 @@ impl Piece {
         let mut has_nine = false;
         for i in 0..4 {
             let modulo = posit[i] % 10;
-            if modulo == 0 { has_zero = true; }
-            if modulo == 9 { has_nine = true; }
+            if modulo == 0 {
+                has_zero = true;
+            }
+            if modulo == 9 {
+                has_nine = true;
+            }
         }
         !(has_zero && has_nine)
     }
@@ -463,7 +467,8 @@ impl Grid {
     fn check_posit(&self, mut posit: [usize; 4]) -> bool {
         for i in 0..4 {
             let index = posit[i];
-            if !self.is_valid_cell(index) || self.cells.get(index).unwrap().get_status() == CellStatus::Closed {
+            if !self.is_valid_cell(index) ||
+               self.cells.get(index).unwrap().get_status() == CellStatus::Closed {
                 return false;
             }
         }
