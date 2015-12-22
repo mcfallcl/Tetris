@@ -79,19 +79,19 @@ impl Grid {
         self.active_piece = self.piece_generator.pop();
     }
 
-    pub fn close_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
+    pub fn close_cell(&mut self, cell_num: usize, color: Color) {
         debug!("Closing cell: {}", cell_num);
-        self.change_cell_status(cell_num, CellStatus::Closed, color)
+        self.change_cell_status(cell_num, CellStatus::Closed, color);
     }
 
-    pub fn open_cell(&mut self, cell_num: usize) -> Result<(), GridError> {
+    pub fn open_cell(&mut self, cell_num: usize) {
         debug!("Opening cell: {}", cell_num);
-        self.change_cell_status(cell_num, CellStatus::Open, OPEN_COLOR)
+        self.change_cell_status(cell_num, CellStatus::Open, OPEN_COLOR);
     }
 
-    pub fn activate_cell(&mut self, cell_num: usize, color: Color) -> Result<(), GridError> {
+    pub fn activate_cell(&mut self, cell_num: usize, color: Color) {
         debug!("Activating cell: {}", cell_num);
-        self.change_cell_status(cell_num, CellStatus::Active, color)
+        self.change_cell_status(cell_num, CellStatus::Active, color);
     }
 
     pub fn iter(&self) -> Iter<Cell> {
@@ -110,7 +110,7 @@ impl Grid {
             for i in 0..4 {
                 let cell_num = self.active_piece.get_cell(i);
                 let color = self.active_piece.color();
-                self.close_cell(cell_num, color).unwrap();
+                self.close_cell(cell_num, color);
             }
             self.new_piece();
         }
@@ -120,13 +120,13 @@ impl Grid {
     fn move_active_to(&mut self, new_posit: [usize; 4]) {
         for i in 0..4 {
             let cell_num = self.active_piece.get_cell(i);
-            self.open_cell(cell_num).unwrap();
+            self.open_cell(cell_num);
         }
         self.active_piece.move_to(new_posit);
         for i in 0..4 {
             let cell_num = new_posit[i];
             let color = self.active_piece.color();
-            self.activate_cell(cell_num, color).unwrap();
+            self.activate_cell(cell_num, color);
         }
     }
 
@@ -235,19 +235,12 @@ impl Grid {
         Piece::is_not_off_side(posit)
     }
 
-    fn change_cell_status(&mut self,
-                          cell_num: usize,
-                          new_status: CellStatus,
-                          new_color: Color)
-                          -> Result<(), GridError> {
-        if !self.is_valid_cell(cell_num) {
-            error!("Invalid cell number: {}", cell_num);
-            return Err(GridError::InvalidGridNumber);
-        }
-        let mut cell = self.cells.get_mut(cell_num).unwrap();
+    fn change_cell_status(&mut self, cell_num: usize, new_status: CellStatus, new_color: Color) {
+        let mut cell = self.cells
+                           .get_mut(cell_num)
+                           .expect("Index out of bounds in cell.change_cell_status.");
         cell.set_status(new_status);
         cell.set_color(new_color);
-        Ok(())
     }
 
     fn is_valid_cell(&self, cell_num: usize) -> bool {

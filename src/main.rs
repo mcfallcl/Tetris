@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate log;
 extern crate piston_window;
 extern crate tetris;
 
@@ -22,7 +24,10 @@ fn main() {
     let window: PistonWindow = WindowSettings::new("Tak's Tetris", (640, 480))
                                    .exit_on_esc(true)
                                    .build()
-                                   .unwrap();
+                                   .unwrap_or_else(|e| {
+                                       error!("Could not build the window: {:?}. Exiting...", e);
+                                       panic!();
+                                   });
 
     let mut timer = CycleTimer::new(800);
     grid.new_piece();

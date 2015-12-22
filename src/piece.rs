@@ -220,7 +220,7 @@ impl PieceGenerator {
         if self.pieces.len() < 4 {
             self.populate();
         }
-        let shape = self.pieces.pop_front().unwrap();
+        let shape = self.pieces.pop_front().expect("Poped when piece generator was empty.");
 
         Piece::create(shape)
     }
