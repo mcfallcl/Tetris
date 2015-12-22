@@ -238,7 +238,7 @@ impl Grid {
                 return false;
             }
         }
-        Piece::is_not_off_side(posit)
+        self.active_piece.is_not_off_side(posit)
     }
 
     fn change_cell_status(&mut self, cell_num: usize, new_status: CellStatus, new_color: Color) {
