@@ -254,11 +254,3 @@ pub enum CellStatus {
     Closed,
     Active,
 }
-
-#[derive(Debug, Clone, Copy)]
-pub enum GridError {
-    CellAlreadyClosed,
-    CellAlreadyOpen,
-    CellAlreadyActive,
-    InvalidGridNumber,
-}
