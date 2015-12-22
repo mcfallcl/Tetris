@@ -191,7 +191,8 @@ impl Piece {
     pub fn is_not_off_side(&self, posit: [usize; 4]) -> bool {
         if self.shape == PieceShape::Straight {
             if self.orientation == Orientation::Left || self.orientation == Orientation::Right {
-                if self.cells[0] % 10 == 0 && posit[0] % 10 == 9 || self.cells[0] % 10 == 9 && posit[0] % 10 == 0 {
+                if self.cells[0] % 10 == 0 && posit[0] % 10 == 9 ||
+                   self.cells[0] % 10 == 9 && posit[0] % 10 == 0 {
                     return false;
                 }
             }
