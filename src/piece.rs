@@ -204,6 +204,7 @@ impl Piece {
     }
 }
 
+#[derive(Debug)]
 pub struct PieceGenerator {
     pieces: VecDeque<Piece>,
 }

@@ -57,6 +57,7 @@ impl Cell {
     }
 }
 
+// TODO Break up functionality between a Grid struct and Game struct
 pub struct Grid {
     cells: Vec<Cell>,
     active_piece: Piece,
@@ -88,17 +89,14 @@ impl Grid {
     }
 
     pub fn close_cell(&mut self, cell_num: usize, color: Color) {
-        debug!("Closing cell: {}", cell_num);
         self.change_cell_status(cell_num, CellStatus::Closed, color);
     }
 
     pub fn open_cell(&mut self, cell_num: usize) {
-        debug!("Opening cell: {}", cell_num);
         self.change_cell_status(cell_num, CellStatus::Open, OPEN_COLOR);
     }
 
     pub fn activate_cell(&mut self, cell_num: usize, color: Color) {
-        debug!("Activating cell: {}", cell_num);
         self.change_cell_status(cell_num, CellStatus::Active, color);
     }
 
