@@ -8,6 +8,7 @@ use piston_window::rectangle::{Shape, Border};
 
 use tetris::gamegrid::Grid;
 use tetris::{logger, CycleTimer};
+use tetris::piece::colors::BLACK;
 
 const GRID_WIDTH: f64 = 215.0;
 const GRID_HEIGHT: f64 = 400.0;
@@ -35,6 +36,7 @@ fn main() {
     for e in window {
         let grid_corner: f64 = 20.0;
         let game_grid: [f64; 4] = [grid_corner, grid_corner, GRID_WIDTH, GRID_HEIGHT];
+        let next_piece_area: [f64; 4] = [260.0, 300.0, 60.0, 60.0];
 
         if let Some(button) = e.press_args() {
             match button {
@@ -52,15 +54,20 @@ fn main() {
         e.draw_2d(|c, g| {
             clear(BACKGROUND_COLOR, g);
             rectangle(GRID_BACKGROUND_COLOR, game_grid, c.transform, g);
+            rectangle(GRID_BACKGROUND_COLOR, next_piece_area, c.transform, g);
             let mut i = 0u32;
             for cell in grid.iter_mut() {
+                if cell.is_open() {
+                    i += 1;
+                    continue;
+                }
                 if i >= 40 {
                     let cell_num = i - 40;
                     let color = cell.get_color();
                     let x = grid_corner + CELL_WIDTH * (cell_num % 10) as f64;
                     let y = grid_corner + CELL_HEIGHT * (cell_num / 10) as f64;
                     let rect = Rectangle::new(color).shape(Shape::Square).border(Border {
-                        color: [0.0, 0.0, 0.0, 1.0],
+                        color: BLACK,
                         radius: 0.5,
                     });
                     rect.draw([x, y, CELL_WIDTH, CELL_HEIGHT],

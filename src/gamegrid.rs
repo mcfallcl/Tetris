@@ -23,6 +23,10 @@ impl Cell {
         self.status
     }
 
+    pub fn is_open(&self) -> bool {
+        self.status == CellStatus::Open
+    }
+
     pub fn set_status(&mut self, new_status: CellStatus) {
         match new_status {
             CellStatus::Open => self.open(),
@@ -77,6 +81,10 @@ impl Grid {
 
     pub fn new_piece(&mut self) {
         self.active_piece = self.piece_generator.pop();
+    }
+
+    pub fn next_piece(&self) -> &Piece {
+        self.piece_generator.peek()
     }
 
     pub fn close_cell(&mut self, cell_num: usize, color: Color) {
