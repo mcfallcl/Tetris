@@ -205,7 +205,7 @@ impl Piece {
 }
 
 pub struct PieceGenerator {
-    pieces: VecDeque<PieceShape>,
+    pieces: VecDeque<Piece>,
 }
 
 impl PieceGenerator {
@@ -220,12 +220,15 @@ impl PieceGenerator {
         if self.pieces.len() < 4 {
             self.populate();
         }
-        let shape = self.pieces.pop_front().expect("Poped when piece generator was empty.");
-
-        Piece::create(shape)
+        self.pieces.pop_front().expect("Poped when piece generator was empty.")
     }
 
-    fn push(&mut self, piece: PieceShape) {
+    pub fn peek(&self) -> &Piece {
+        self.pieces.front().expect("Peeked at an empty piece generator.")
+    }
+
+    fn push(&mut self, shape: PieceShape) {
+        let piece = Piece::create(shape);
         self.pieces.push_back(piece);
     }
 
